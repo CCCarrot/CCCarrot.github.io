@@ -26,8 +26,11 @@
 <meta property="og:image" content="http://example.com/img/SecureNN2.png">
 <meta property="og:image" content="http://example.com/img/SecureNN3.png">
 <meta property="og:image" content="http://example.com/img/SecureNN-1.png">
+<meta property="og:image" content="http://example.com/img/SecureNN-3.png">
+<meta property="og:image" content="http://example.com/img/SecureNN-4.png">
+<meta property="og:image" content="http://example.com/img/SecureNN-5.png">
 <meta property="article:published_time" content="2022-04-22T09:48:53.000Z">
-<meta property="article:modified_time" content="2022-04-24T01:27:27.455Z">
+<meta property="article:modified_time" content="2022-04-24T11:42:28.029Z">
 <meta property="article:author" content="J">
 <meta property="article:tag" content="MPC">
 <meta property="article:tag" content="密码学">
@@ -209,7 +212,7 @@
   
     <span class="post-meta mr-2">
       <i class="iconfont icon-chart"></i>
-      1.6k 字
+      3.4k 字
     </span>
   
 
@@ -218,7 +221,7 @@
       <i class="iconfont icon-clock-fill"></i>
       
       
-      14 分钟
+      29 分钟
     </span>
   
 
@@ -259,7 +262,7 @@
             
               <p class="note note-info">
                 
-                  本文最后更新于：2022年4月24日 上午
+                  本文最后更新于：2022年4月24日 晚上
                 
               </p>
             
@@ -304,14 +307,94 @@ class="hint--top hint--rounded"
 aria-label="在奇数环中，n为环的阶，MSB(a)=1→a&gt;n/2→n&gt;2a-n&gt;0→2a-n为奇数→LSB(2a-n)=1，有2a-n=2a
 mod n，所以LSB(2a)=1。同理，当MSB(a)=0时，有LSB(2a)=0。
 ">[1]</span></a></sup>，所以此时问题就变成了如何使用算术电路求输入的最低有效位。</p>
-<p>P0、P1本地计算y=2a，有MSB(a)=LSB(y)=y[0]， <img
-src="/img/SecureNN-3.png" srcset="/img/loading.gif" lazyload alt="Private Compare" />
-先考虑算法的分支结构：</p>
+<p>P0、P1本地计算y=2a，有<span
+class="math inline">\(MSB(a)=LSB(y)=y[0]\)</span>，设定<span
+class="math inline">\(r=x+y\;mod\;L-1\)</span>，这样原问题就转化为<span
+class="math inline">\(y[0]=x[0]\bigoplus r[0]\oplus
+warp(x,y,n)\)</span>，其中<span
+class="math inline">\(warp(x,y,n)=1,iff\;x+y=&gt;n,else\;0\)</span>。
+<img src="/img/SecureNN-3.png" srcset="/img/loading.gif" lazyload alt="Private Compare" />
+要比较x和r哪个大，就是从最高有效位开始往右一个比特一个比特的比较是否相同，找到第一个不同的比特位，然后那个比特为1的就更大。
+考虑算法的分支结构：</p>
 <ol type="1">
-<li><span class="math inline">\(\beta=0,则\beta{}&#39;=(x&gt;r)\)</span>
-此时，算法使用<span class="math inline">\(\omega
-_{i}\)</span>来表示第i位是否相同</li>
+<li><span class="math inline">\(\beta=0\)</span>,则<span
+class="math inline">\(\beta{}&#39;=(x&gt;r)\)</span></li>
 </ol>
+<p>此时，算法使用<span class="math inline">\(\omega
+_{i}\)</span>来表示第i位是否相同（<span
+class="math inline">\(Reconst^{p}(&lt;\omega _{i}&gt;_{0}^{p},&lt;\omega
+_{i}&gt;_{1}^{p})=\omega _{i}=x[i]\bigoplus r[i]\)</span>），使用<span
+class="math inline">\(c_{i}\)</span>来记录前i位比特是否相同，若x、r第i个比特不同且x[i]=1，则<span
+class="math inline">\(c_{i}=0\)</span>；若x、r第i个比特不同且x[i]=0，则<span
+class="math inline">\(c_{i}=2\)</span>，且后续所有<span
+class="math inline">\(c_{i}=&gt;1\)</span>。最后若存在i使得<span
+class="math inline">\(c_{i}=0\)</span>，则x&gt;r成立。</p>
+<ol start="2" type="1">
+<li><span class="math inline">\(\beta=1\)</span>,则<span
+class="math inline">\(\beta{}&#39;=(x&lt;=r)=(x&lt;r+1)\)</span>
+<ul>
+<li><span class="math inline">\(r!=2^l-1\)</span>。此时与<span
+class="math inline">\(\beta=0\)</span>的情况类似，仅是变成x与r+1的大小比较。</li>
+<li><span
+class="math inline">\(r=2^l-1\)</span>。此时x&lt;=r恒成立，只需任选一<span
+class="math inline">\(c_{i}\)</span>置为0即可。</li>
+</ul></li>
+</ol>
+<h3 id="share-convert">Share Convert</h3>
+<p>由于Private
+Compare协议只能在奇数环上进行，而输入并不是仅在奇数环上，所以需要一个<span
+class="math inline">\(Z_{L}\rightarrow
+Z_{L-1}\)</span>的转化协议，功能要求为<span
+class="math inline">\(Reconst^{L-1}(&lt;y&gt;_{0}^{L-1},&lt;y&gt;_{1}^{L-1})=Reconst^{L}(&lt;a&gt;_{0}^{L},&lt;a&gt;_{1}^{L})=a\)</span>。</p>
+<p>这个问题分两种情况考虑：</p>
+<ol type="1">
+<li><p><span
+class="math inline">\(a_{0}^{L}+a_{1}^{L}&lt;L\)</span>。此时<span
+class="math inline">\(a\;mod\;L=a\;mod\;L-1\)</span>。</p></li>
+<li><p><span
+class="math inline">\(a_{0}^{L}+a_{1}^{L}=&gt;L\)</span>。此时<span
+class="math inline">\(a\;mod\;L=a-1\;mod\;L-1\)</span>。</p></li>
+</ol>
+<p>综上，令<span class="math inline">\(\theta
+=(a&gt;L)=warp(&lt;a&gt;_{0}^{L},&lt;a&gt;_{1}^{L},L)\)</span>，则可以将问题总结为<span
+class="math inline">\(a\;mod\;L-1=a-(L-1)-\theta\)</span>。此时解决问题的关键就在于求<span
+class="math inline">\(\theta\)</span>。 <img src="/img/SecureNN-4.png" srcset="/img/loading.gif" lazyload
+alt="Share Convert" /></p>
+<ol type="1">
+<li><p><span
+class="math inline">\(r=&lt;r&gt;_{0}^{L}+&lt;r&gt;_{1}^{L}-\alpha
+L\)</span></p></li>
+<li><p><span
+class="math inline">\(&lt;\tilde{a}&gt;_{j}^{L}=&lt;a&gt;_{j}^{L}+&lt;r&gt;_{j}^{L}-\beta
+_{j}L\)</span>（Step2）</p></li>
+<li><p><span
+class="math inline">\(x=&lt;\tilde{a}&gt;_{0}^{L}+&lt;\tilde{a}&gt;_{1}^{L}-\delta
+L\)</span>（Step4）</p></li>
+<li><p><span class="math inline">\(x=a+r-(1-\eta
+)L\)</span>（Step5~9）</p></li>
+<li><p><span
+class="math inline">\(a=&lt;a&gt;_{0}^{L}+&lt;a&gt;_{1}^{L}-\theta
+L\)</span></p></li>
+</ol>
+<p>最后<span class="math inline">\(1-2-3+4+5\)</span>可得到<span
+class="math inline">\(\theta =\beta _{0}+\beta _{1}-\alpha +\sigma +\eta
+-1\)</span>（Step10）。</p>
+<h3 id="compute-msb">Compute MSB</h3>
+<p>前边的算法已经把计算MSB所需要的算子实现，所以此时再做MSB(x)就会简单很多。在奇数环中，有<span
+class="math inline">\(MSB(a)=LSB(y)=y[0]=r[0]\bigoplus x[0]\bigoplus
+wrap(y,x,L-1)\)</span>，其中<span
+class="math inline">\(y=2a\)</span>，<span
+class="math inline">\(wrap(y,x,L-1)\Leftrightarrow
+(x&gt;r)\)</span><sup id="fnref:2" class="footnote-ref"><a href="#fn:2" rel="footnote">&lt;span
+class="hint--top hint--rounded" aria-label="若((x&gt;r))成立，由于<span
+class="math inline">(r=x+y)，所以<span
+class="math inline">(x+y)必然超模，所以<span
+class="math inline">(warp(y,x,L-1)=1)。 "&gt;[2]</span></a></sup>。</p>
+<p>令<span class="math inline">\(\sigma =r[0]\bigoplus
+x[0]\)</span>，<span class="math inline">\(\gamma
+=warp(y,x,L-1)=(x&gt;r)\)</span>，得<span class="math inline">\(MSB(a)=
+\sigma \bigoplus \gamma\)</span>。 <img src="/img/SecureNN-5.png" srcset="/img/loading.gif" lazyload
+alt="Compute MSB" /></p>
 <section class="footnotes">
 <div class="footnote-list">
 <ol>
@@ -320,6 +403,15 @@ _{i}\)</span>来表示第i位是否相同</li>
 class="footnote-text"><span>在奇数环中，n为环的阶，MSB(a)=1→a&gt;n/2→n&gt;2a-n&gt;0→2a-n为奇数→LSB(2a-n)=1，有2a-n=2a
 mod n，所以LSB(2a)=1。同理，当MSB(a)=0时，有LSB(2a)=0。
 <a href="#fnref:1" rev="footnote" class="footnote-backref">
+↩︎</a></span></span>
+</li>
+<li>
+<span id="fn:2" class="footnote-text"><span>若<span
+class="math inline">((x&gt;r))</span>成立，由于<span
+class="math inline">(r=x+y)</span>，所以<span
+class="math inline">(x+y)</span>必然超模，所以<span
+class="math inline">(warp(y,x,L-1)=1)</span>。
+<a href="#fnref:2" rev="footnote" class="footnote-backref">
 ↩︎</a></span></span>
 </li>
 </ol>
